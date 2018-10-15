@@ -75,162 +75,9 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-void Motor_2_Home(void)
-{
-	L6470_SetParam(2,L6470_MAX_SPEED_ID,Step_s_2_MaxSpeed(1400));
-	L6470_SetParam(2,L6470_ACC_ID,Step_s2_2_Acc(1200));
-	L6470_SetParam(2,L6470_DEC_ID,Step_s2_2_Dec(1200));
-	L6470_SetParam(2,L6470_STALL_TH_ID,mA_2_StallTh(800));
-    L6470_Move(2,L6470_DIR_FWD_ID,200*64*100);
-    while(HAL_GPIO_ReadPin(L6470_Flag_INT_GPIO_Port,L6470_Flag_INT_Pin) == GPIO_PIN_SET);
-
-    uint16_t StatusRegister = L6470_GetStatus(2);
-
-    if((StatusRegister & STATUS_BUSY) == 0)
-      {
-        //HAL_GPIO_WritePin(LED_GREEN_GPIO_Port,LED_GREEN_Pin,GPIO_PIN_SET);
-      }
-
-    if((StatusRegister & STATUS_STEP_LOSS_A) == 0 || (StatusRegister & STATUS_STEP_LOSS_B) == 0)
-      {
-        HAL_GPIO_WritePin(LED_GREEN_GPIO_Port,LED_GREEN_Pin,GPIO_PIN_SET);
-        L6470_HardStop(2);
-      }
-}
 
 
-void UART_Loop()
-    {
 
-    uint8_t str_to_int[15] = "0";
-    uint32_t rx_value[4] =
-	{
-	0
-	};
-    uint8_t motor_id = 0;
-    uint8_t rx_digit_cnt = 0;
-    uint8_t rx_byte = 0;
-
-    uint8_t command_valid = 0;
-
-    if (Ring_Buffer_Get_Count() > 0)
-	{
-
-	if (Ring_Buffer_Check_Char() == '\n') //complete command received
-
-	    {
-
-	    uint8_t while_loop_timeout_1 = 128; //equal to ring buffer size
-
-	    while (rx_byte != '\n' && --while_loop_timeout_1)
-		{
-
-		SCAN_AXIS: rx_byte = Ring_Buffer_Get_Char();
-
-		if (rx_byte == 'X' || rx_byte == 'x')
-		    {
-		    motor_id = 0;
-		    goto PARSE_AXIS_VALUE;
-		    }
-		else if (rx_byte == 'Y' || rx_byte == 'y')
-		    {
-		    motor_id = 1;
-		    goto PARSE_AXIS_VALUE;
-		    }
-		else if (rx_byte == 'Z' || rx_byte == 'z')
-		    {
-		    motor_id = 2;
-		    goto PARSE_AXIS_VALUE;
-		    }
-		else if (rx_byte == 'M' || rx_byte == 'm')
-		    {
-		    motor_id = 3;
-		    goto PARSE_AXIS_VALUE;
-		    }
-		else
-		    {
-		    goto SKIP;
-		    //skip parsing
-		    }
-
-		PARSE_AXIS_VALUE: command_valid = 1;
-
-		rx_byte = Ring_Buffer_Get_Char();
-
-		if (rx_byte == 32) //if space
-		    {
-		    rx_byte = Ring_Buffer_Get_Char(); //Ignore space
-		    }
-
-		rx_digit_cnt = 0;
-
-		uint8_t while_loop_timeout_2 = 128; //equal to ring bugger size
-
-		while (rx_byte != '\n' && --while_loop_timeout_2)
-		    {
-
-		    if (rx_byte > 47 && rx_byte < 58) //if number
-			{
-			str_to_int[rx_digit_cnt++] = rx_byte;
-			}
-		    else if (rx_byte == 32) // space found - scan for next axis
-			{
-			str_to_int[rx_digit_cnt++] = '\n'; // close string
-			rx_value[motor_id] = atoi((char*) str_to_int);
-			goto SCAN_AXIS;
-			}
-		    else if (rx_byte != 13) // Carriage return ignore
-			{
-			command_valid = 0;
-			}
-
-		    rx_byte = Ring_Buffer_Get_Char();
-
-		    }
-
-		SKIP:
-		    {
-		    }
-
-		}
-
-	    if (command_valid == 1)
-		{
-
-		HAL_UART_Transmit(&huart2, (uint8_t*) "OK\n", 3, 2);
-
-		str_to_int[rx_digit_cnt++] = '\n'; // close string
-		rx_value[motor_id] = atoi((char*) str_to_int);
-
-		if (rx_value[0] != 0)
-		    {
-		    L6470_Move(0, L6470_DIR_FWD_ID, rx_value[0]);
-		    }
-		if (rx_value[1] != 0)
-		    {
-		    L6470_Move(1, L6470_DIR_FWD_ID, rx_value[1]);
-		    }
-		if (rx_value[2] != 0)
-		    {
-		    L6470_Move(2, L6470_DIR_FWD_ID, rx_value[2]);
-		    }
-		if (rx_value[3] != 0)
-		    {
-		    L6470_Move(3, L6470_DIR_FWD_ID, rx_value[3]);
-		    }
-
-		}
-	    else
-		{
-		HAL_UART_Transmit(&huart2, (uint8_t*) "Invalid Command\n", 16,
-			2);
-		}
-
-	    }
-
-	}
-
-    }
 
 
 void HAL_SYSTICK_Callback(void)
@@ -280,9 +127,9 @@ int main(void)
   Motor_1_Data.phasecurrent=1.5;
   Motor_1_Data.phasevoltage=3.0;
   Motor_1_Data.speed=1000.0;
-  Motor_1_Data.acc=1000.0;
-  Motor_1_Data.dec=1000.0;
-  Motor_1_Data.maxspeed=1500.0;
+  Motor_1_Data.acc=200.0;
+  Motor_1_Data.dec=200.0;
+  Motor_1_Data.maxspeed=1000.0;
   Motor_1_Data.minspeed=0.0;
   Motor_1_Data.fsspd=602.7;
   Motor_1_Data.kvalhold=3.06;
@@ -295,8 +142,8 @@ int main(void)
   Motor_1_Data.fnslpdec=643.1372e-6;
   Motor_1_Data.kterm=0;
   Motor_1_Data.ocdth=1*1500*1.00;
-  Motor_1_Data.stallth=800*1.00;
-  Motor_1_Data.step_sel=MICROSTEP_1_16;
+  Motor_1_Data.stallth=650*1.00;
+  Motor_1_Data.step_sel=MICROSTEP_1_128;
   Motor_1_Data.alarmen=0xFF;
   Motor_1_Data.config=0x2E88;
 
@@ -339,13 +186,6 @@ int main(void)
   Ring_Buffer_Init(&huart2);
 
 
-  //L6470_Move(0,L6470_DIR_FWD_ID,1000);
-  //L6470_Move(1,L6470_DIR_FWD_ID,1000);
-
-  //L6470_Move(2,L6470_DIR_FWD_ID,1000);
-  //L6470_Move(3,L6470_DIR_FWD_ID,1000);
-
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -357,18 +197,16 @@ int main(void)
 
 	/* USER CODE BEGIN 3 */
 
-	if (HAL_GPIO_ReadPin(Push_Button_GPIO_Port, Push_Button_Pin)
+	UART_Loop();
+
+	if (HAL_GPIO_ReadPin(L6470_Flag_INT_GPIO_Port, L6470_Flag_INT_Pin)
 		== GPIO_PIN_RESET)
 	    {
-	    //L6470_Move(0,L6470_DIR_FWD_ID,1000000);
-	    //L6470_Move(1,L6470_DIR_FWD_ID,1000000);
-	    //L6470_Move(2,L6470_DIR_FWD_ID,200*64*10);
-	    //L6470_Move(3,L6470_DIR_FWD_ID,1000000);
-
-	    Motor_2_Home();
+	    uint16_t status_register_0 = L6470_GetStatus(0);
+	    uint16_t status_register_1 = L6470_GetStatus(1);
+	    uint16_t status_register_2 = L6470_GetStatus(2);
+	    uint16_t status_register_3 = L6470_GetStatus(3);
 	    }
-
-	    UART_Loop();
 
 
 	}
@@ -437,15 +275,70 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
-
+/*
     if (GPIO_Pin == L6470_Flag_INT_Pin)
 	{
-	uint16_t StatusRegister = L6470_GetStatus(2);
-	if ((StatusRegister & STATUS_STEP_LOSS_A) == 0
-		|| (StatusRegister & STATUS_STEP_LOSS_B) == 0)
+	uint16_t status_register_0 = L6470_GetStatus(0);
+	uint16_t status_register_1 = L6470_GetStatus(1);
+	uint16_t status_register_2 = L6470_GetStatus(2);
+	uint16_t status_register_3 = L6470_GetStatus(3);
+
+	if ((status_register_0 & STATUS_STEP_LOSS_A) == 0
+		|| (status_register_0 & STATUS_STEP_LOSS_B) == 0)
 	    {
-	    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
+	    L6470_HardStop(0);
+	    }
+	if ((status_register_1 & STATUS_STEP_LOSS_A) == 0
+		|| (status_register_1 & STATUS_STEP_LOSS_B) == 0)
+	    {
+	    L6470_HardStop(1);
+	    }
+	if ((status_register_2 & STATUS_STEP_LOSS_A) == 0
+		|| (status_register_2 & STATUS_STEP_LOSS_B) == 0)
+	    {
 	    L6470_HardStop(2);
+	    }
+	if ((status_register_3 & STATUS_STEP_LOSS_A) == 0
+		|| (status_register_3 & STATUS_STEP_LOSS_B) == 0)
+	    {
+	    L6470_HardStop(3);
+	    }
+
+	}
+    */
+    if (GPIO_Pin == L6470_Flag_INT_Pin)
+	{
+	uint16_t status_register_0 = L6470_GetStatus(0);
+	uint16_t status_register_1 = L6470_GetStatus(1);
+	uint16_t status_register_2 = L6470_GetStatus(2);
+	uint16_t status_register_3 = L6470_GetStatus(3);
+
+	uint8_t perform_action = 0;
+
+	if ((status_register_0 & STATUS_SW_EVN))
+	    {
+	    perform_action = 1;
+	    L6470_PrepareReleaseSW(0, L6470_ACT_RST_ID, L6470_DIR_REV_ID);
+	    }
+	if ((status_register_1 & STATUS_SW_EVN))
+	    {
+	    perform_action = 1;
+	    L6470_PrepareReleaseSW(1, L6470_ACT_RST_ID, L6470_DIR_FWD_ID);
+	    }
+	if ((status_register_2 & STATUS_SW_EVN))
+	    {
+	    perform_action = 1;
+	    L6470_PrepareReleaseSW(2, L6470_ACT_RST_ID, L6470_DIR_REV_ID);
+	    }
+	if ((status_register_3 & STATUS_SW_EVN))
+	    {
+	    perform_action = 1;
+	    L6470_PrepareReleaseSW(3, L6470_ACT_RST_ID, L6470_DIR_REV_ID);
+	    }
+
+	if (perform_action)
+	    {
+	    L6470_PerformPreparedApplicationCommand();
 	    }
 
 	}

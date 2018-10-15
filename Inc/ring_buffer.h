@@ -13,11 +13,13 @@
 
 
 void Ring_Buffer_Init(UART_HandleTypeDef *_huart);
-uint8_t Ring_Buffer_Get_Char(void);
+uint8_t Ring_Buffer_Get_Char(uint8_t* data);
 uint8_t Ring_Buffer_Get_Count(void);
-void Ring_Buffer_Flush();
+void Ring_Buffer_Flush(void);
 
-uint8_t Ring_Buffer_Check_Char(void);
+uint8_t Ring_Buffer_Check_Char(uint8_t* data);
+uint8_t Ring_Buffer_Check_Count(void);
+
 
 
 
