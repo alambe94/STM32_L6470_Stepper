@@ -41,13 +41,17 @@
 #include "stm32f4xx_hal.h"
 #include "dma.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
 #include "L6470.h"
-#include "ring_buffer.h"
 #include "stdlib.h"
+#include "math.h"
+#include "FreeRTOS_CLI.h"
+#include "CLI_commands.h"
+
 
 /* USER CODE END Includes */
 
@@ -55,15 +59,19 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-StepperMotorDriverHandle_t Motor_1_Handler;
-StepperMotorDriverHandle_t Motor_2_Handler;
-StepperMotorDriverHandle_t Motor_3_Handler;
-StepperMotorDriverHandle_t Motor_4_Handler;
+StepperMotorDriverHandle_t Motor_X_Handler;
+StepperMotorDriverHandle_t Motor_Y_Handler;
+StepperMotorDriverHandle_t Motor_Z_Handler;
+StepperMotorDriverHandle_t Motor_M_Handler;
 
-
-
-//MotorParameterData_t Motor_1_Data;
 MotorParameterData_t Motor_1_Data;
+MotorParameterData_t Motor_X_Data;
+MotorParameterData_t Motor_Y_Data;
+MotorParameterData_t Motor_Z_Data;
+MotorParameterData_t Motor_M_Data;
+
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,14 +85,9 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 
 
-
-
-
 void HAL_SYSTICK_Callback(void)
     {
     }
-
-
 
 /* USER CODE END 0 */
 
@@ -120,17 +123,18 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_SPI1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   Motor_1_Data.motorvoltage=9.0;
   Motor_1_Data.fullstepsperrevolution=200;
   Motor_1_Data.phasecurrent=1.5;
   Motor_1_Data.phasevoltage=3.0;
-  Motor_1_Data.speed=1000.0;
-  Motor_1_Data.acc=200.0;
-  Motor_1_Data.dec=200.0;
+  Motor_1_Data.speed=100.0;
+  Motor_1_Data.acc=500.0;
+  Motor_1_Data.dec=500.0;
   Motor_1_Data.maxspeed=1000.0;
-  Motor_1_Data.minspeed=0.0;
+  Motor_1_Data.minspeed=5.0;
   Motor_1_Data.fsspd=602.7;
   Motor_1_Data.kvalhold=3.06;
   Motor_1_Data.kvalrun=3.06;
@@ -142,10 +146,62 @@ int main(void)
   Motor_1_Data.fnslpdec=643.1372e-6;
   Motor_1_Data.kterm=0;
   Motor_1_Data.ocdth=1*1500*1.00;
-  Motor_1_Data.stallth=650*1.00;
+  Motor_1_Data.stallth=1000*1.00;
   Motor_1_Data.step_sel=MICROSTEP_1_128;
   Motor_1_Data.alarmen=0xFF;
   Motor_1_Data.config=0x2E88;
+
+
+  Motor_X_Data.motorvoltage=9.0;
+  Motor_X_Data.fullstepsperrevolution=200;
+  Motor_X_Data.phasecurrent=1.5;
+  Motor_X_Data.phasevoltage=3.0;
+  Motor_X_Data.speed=100.0;
+  Motor_X_Data.acc=100.0;
+  Motor_X_Data.dec=50.0;
+  Motor_X_Data.maxspeed=1000.0;
+  Motor_X_Data.minspeed=0.0;
+  Motor_X_Data.fsspd=602.7;
+  Motor_X_Data.kvalhold=3.06;
+  Motor_X_Data.kvalrun=3.06;
+  Motor_X_Data.kvalacc=3.06;
+  Motor_X_Data.kvaldec=3.06;
+  Motor_X_Data.intspeed=61.52;
+  Motor_X_Data.stslp=392.1569e-6;
+  Motor_X_Data.fnslpacc=643.1372e-6;
+  Motor_X_Data.fnslpdec=643.1372e-6;
+  Motor_X_Data.kterm=0;
+  Motor_X_Data.ocdth=1*1500*1.00;
+  Motor_X_Data.stallth=1000*1.00;
+  Motor_X_Data.step_sel=MICROSTEP_1_128;
+  Motor_X_Data.alarmen=0xFF;
+  Motor_X_Data.config=0x2E88;
+
+
+  Motor_Y_Data.motorvoltage=9.0;
+  Motor_Y_Data.fullstepsperrevolution=200;
+  Motor_Y_Data.phasecurrent=1.5;
+  Motor_Y_Data.phasevoltage=3.0;
+  Motor_Y_Data.speed=100.0;
+  Motor_Y_Data.acc=100.0;
+  Motor_Y_Data.dec=50.0;
+  Motor_Y_Data.maxspeed=1000.0;
+  Motor_Y_Data.minspeed=0.0;
+  Motor_Y_Data.fsspd=602.7;
+  Motor_Y_Data.kvalhold=3.06;
+  Motor_Y_Data.kvalrun=3.06;
+  Motor_Y_Data.kvalacc=3.06;
+  Motor_Y_Data.kvaldec=3.06;
+  Motor_Y_Data.intspeed=61.52;
+  Motor_Y_Data.stslp=392.1569e-6;
+  Motor_Y_Data.fnslpacc=643.1372e-6;
+  Motor_Y_Data.fnslpdec=643.1372e-6;
+  Motor_Y_Data.kterm=0;
+  Motor_Y_Data.ocdth=1*1500*1.00;
+  Motor_Y_Data.stallth=1000*1.00;
+  Motor_Y_Data.step_sel=MICROSTEP_1_128;
+  Motor_Y_Data.alarmen=0xFF;
+  Motor_Y_Data.config=0x2E88;
 
   L6470_DISABLE();
   HAL_Delay(10);
@@ -165,25 +221,28 @@ int main(void)
 
 
 
-  Motor_1_Handler.DaisyChainPosition=0;
-  Motor_1_Handler.Command=&L6470Command;
-  L6470_Config(&Motor_1_Handler,&Motor_1_Data);
+  Motor_X_Handler.DaisyChainPosition=0;
+  Motor_X_Handler.Command=&L6470Command;
+  L6470_Config(&Motor_X_Handler,&Motor_X_Data);
 
 
-  Motor_2_Handler.DaisyChainPosition=1;
-  Motor_2_Handler.Command=&L6470Command;
-  L6470_Config(&Motor_2_Handler,&Motor_1_Data);
+  Motor_Y_Handler.DaisyChainPosition=1;
+  Motor_Y_Handler.Command=&L6470Command;
+  L6470_Config(&Motor_Y_Handler,&Motor_1_Data);
 
-  Motor_3_Handler.DaisyChainPosition=2;
-  Motor_3_Handler.Command=&L6470Command;
-  L6470_Config(&Motor_3_Handler,&Motor_1_Data);
+  Motor_Z_Handler.DaisyChainPosition=2;
+  Motor_Z_Handler.Command=&L6470Command;
+  L6470_Config(&Motor_Z_Handler,&Motor_1_Data);
 
-  Motor_4_Handler.DaisyChainPosition=3;
-  Motor_4_Handler.Command=&L6470Command;
-  L6470_Config(&Motor_4_Handler,&Motor_1_Data);
+  Motor_M_Handler.DaisyChainPosition=3;
+  Motor_M_Handler.Command=&L6470Command;
+  L6470_Config(&Motor_M_Handler,&Motor_1_Data);
 
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1);
 
   Ring_Buffer_Init(&huart2);
+
+  CLI_Commands_Register();
 
 
   /* USER CODE END 2 */
@@ -193,12 +252,52 @@ int main(void)
   while (1)
 	{
 
-	/* USER CODE END WHILE */
+  /* USER CODE END WHILE */
 
-	/* USER CODE BEGIN 3 */
+  /* USER CODE BEGIN 3 */
 
-	UART_Loop();
 
+            UARTCommandConsoleLoop();
+
+            char int_to_str[15];
+
+            int16_t encoder_count_x = htim2.Instance->CNT;
+            static int16_t encoder_count_x_prev;
+
+            itoa(encoder_count_x,int_to_str,10);
+
+            static uint32_t time_stamp = 0;
+
+            if(HAL_GetTick() - time_stamp > 10)
+        	{
+
+            time_stamp = HAL_GetTick() ;
+
+            if(encoder_count_x != encoder_count_x_prev)
+
+        	{
+        	encoder_count_x_prev = encoder_count_x;
+            if(encoder_count_x >=0)
+        	{
+        	encoder_count_x = encoder_count_x*exp(encoder_count_x);
+        	htim2.Instance->CNT = 0;
+        	L6470_Run(1,L6470_DIR_FWD_ID,encoder_count_x);
+        	}
+            else if(encoder_count_x <=0)
+        	{
+        	encoder_count_x *= -1;
+        	encoder_count_x = encoder_count_x*exp(encoder_count_x);
+        	htim2.Instance->CNT = 0;
+        	L6470_Run(1,L6470_DIR_REV_ID,encoder_count_x);
+        	}
+        	}
+        	}
+
+            //vSerialPutString(&huart2,(uint8_t*)int_to_str,strlen(int_to_str));
+
+            //vSerialPutString(&huart2,(uint8_t*)"\r\n",strlen("\r\n"));
+
+            /*
 	if (HAL_GPIO_ReadPin(L6470_Flag_INT_GPIO_Port, L6470_Flag_INT_Pin)
 		== GPIO_PIN_RESET)
 	    {
@@ -206,9 +305,14 @@ int main(void)
 	    uint16_t status_register_1 = L6470_GetStatus(1);
 	    uint16_t status_register_2 = L6470_GetStatus(2);
 	    uint16_t status_register_3 = L6470_GetStatus(3);
+	    ( void ) status_register_0;
+	    ( void ) status_register_1;
+	    ( void ) status_register_2;
+	    ( void ) status_register_3;
+
 	    }
 
-
+            */
 	}
   /* USER CODE END 3 */
 
@@ -305,7 +409,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	    }
 
 	}
-    */
+*/
     if (GPIO_Pin == L6470_Flag_INT_Pin)
 	{
 	uint16_t status_register_0 = L6470_GetStatus(0);
