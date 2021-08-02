@@ -6,29 +6,13 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
+  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */ 
@@ -131,22 +115,23 @@ typedef enum
   *           - Y  : Output type (Push Pull or Open Drain)
   *           - Z  : IO Direction mode (Input, Output, Alternate or Analog)
   * @{
-  */ 
-#define  GPIO_MODE_INPUT                        0x00000000U   /*!< Input Floating Mode                   */
-#define  GPIO_MODE_OUTPUT_PP                    0x00000001U   /*!< Output Push Pull Mode                 */
-#define  GPIO_MODE_OUTPUT_OD                    0x00000011U   /*!< Output Open Drain Mode                */
-#define  GPIO_MODE_AF_PP                        0x00000002U   /*!< Alternate Function Push Pull Mode     */
-#define  GPIO_MODE_AF_OD                        0x00000012U   /*!< Alternate Function Open Drain Mode    */
+  */
+#define  GPIO_MODE_INPUT                        MODE_INPUT                                               /*!< Input Floating Mode                   */
+#define  GPIO_MODE_OUTPUT_PP                    (MODE_PP | MODE_OUTPUT)                                  /*!< Output Push Pull Mode                 */
+#define  GPIO_MODE_OUTPUT_OD                    (MODE_OD | MODE_OUTPUT)                                  /*!< Output Open Drain Mode                */
+#define  GPIO_MODE_AF_PP                        (MODE_PP | MODE_AF)                                      /*!< Alternate Function Push Pull Mode     */
+#define  GPIO_MODE_AF_OD                        (MODE_OD | MODE_AF)                                      /*!< Alternate Function Open Drain Mode    */
 
-#define  GPIO_MODE_ANALOG                       0x00000003U   /*!< Analog Mode  */
-    
-#define  GPIO_MODE_IT_RISING                    0x10110000U   /*!< External Interrupt Mode with Rising edge trigger detection          */
-#define  GPIO_MODE_IT_FALLING                   0x10210000U   /*!< External Interrupt Mode with Falling edge trigger detection         */
-#define  GPIO_MODE_IT_RISING_FALLING            0x10310000U   /*!< External Interrupt Mode with Rising/Falling edge trigger detection  */
- 
-#define  GPIO_MODE_EVT_RISING                   0x10120000U   /*!< External Event Mode with Rising edge trigger detection               */
-#define  GPIO_MODE_EVT_FALLING                  0x10220000U   /*!< External Event Mode with Falling edge trigger detection              */
-#define  GPIO_MODE_EVT_RISING_FALLING           0x10320000U   /*!< External Event Mode with Rising/Falling edge trigger detection       */
+#define  GPIO_MODE_ANALOG                       MODE_ANALOG                                              /*!< Analog Mode  */
+
+#define  GPIO_MODE_IT_RISING                    (EXTI_MODE | GPIO_MODE_IT | RISING_EDGE)                 /*!< External Interrupt Mode with Rising edge trigger detection          */
+#define  GPIO_MODE_IT_FALLING                   (EXTI_MODE | GPIO_MODE_IT               | FALLING_EDGE)  /*!< External Interrupt Mode with Falling edge trigger detection         */
+#define  GPIO_MODE_IT_RISING_FALLING            (EXTI_MODE | GPIO_MODE_IT | RISING_EDGE | FALLING_EDGE)  /*!< External Interrupt Mode with Rising/Falling edge trigger detection  */
+
+#define  GPIO_MODE_EVT_RISING                   (EXTI_MODE | GPIO_MODE_EVT | RISING_EDGE)                /*!< External Event Mode with Rising edge trigger detection               */
+#define  GPIO_MODE_EVT_FALLING                  (EXTI_MODE | GPIO_MODE_EVT               | FALLING_EDGE) /*!< External Event Mode with Falling edge trigger detection              */
+#define  GPIO_MODE_EVT_RISING_FALLING           (EXTI_MODE | GPIO_MODE_EVT | RISING_EDGE | FALLING_EDGE) /*!< External Event Mode with Rising/Falling edge trigger detection       */
+
 /**
   * @}
   */
@@ -268,6 +253,21 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /** @defgroup GPIO_Private_Constants GPIO Private Constants
   * @{
   */
+#define GPIO_MODE             0x00000003U
+#define EXTI_MODE             0x10000000U
+#define GPIO_MODE_IT          0x00010000U
+#define GPIO_MODE_EVT         0x00020000U
+#define RISING_EDGE           0x00100000U
+#define FALLING_EDGE          0x00200000U
+#define GPIO_OUTPUT_TYPE      0x00000010U
+
+#define  MODE_INPUT           0x00000000U           /*!< Input Mode                   */
+#define  MODE_OUTPUT          0x00000001U           /*!< Output Mode                  */
+#define  MODE_AF              0x00000002U           /*!< Alternate Function Mode      */
+#define  MODE_ANALOG          0x00000003U           /*!< Analog Mode                  */
+
+#define  MODE_PP              0x00000000U           /*!< Push Pull Mode               */
+#define  MODE_OD              0x00000010U           /*!< Open Drain Mode              */
 
 /**
   * @}
@@ -278,7 +278,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
   * @{
   */
 #define IS_GPIO_PIN_ACTION(ACTION) (((ACTION) == GPIO_PIN_RESET) || ((ACTION) == GPIO_PIN_SET))
-#define IS_GPIO_PIN(PIN)           ((((PIN) & GPIO_PIN_MASK ) != 0x00U) && (((PIN) & ~GPIO_PIN_MASK) == 0x00U))
+#define IS_GPIO_PIN(PIN)           (((((uint32_t)PIN) & GPIO_PIN_MASK ) != 0x00U) && ((((uint32_t)PIN) & ~GPIO_PIN_MASK) == 0x00U))
 #define IS_GPIO_MODE(MODE) (((MODE) == GPIO_MODE_INPUT)              ||\
                             ((MODE) == GPIO_MODE_OUTPUT_PP)          ||\
                             ((MODE) == GPIO_MODE_OUTPUT_OD)          ||\
